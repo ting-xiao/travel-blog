@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="An interactive bilingual world map for personal travel photographs and reflections."
+    />
+    <meta name="theme-color" content="#0b2a35" />
+    <title>Wander Atlas — Interactive Travel Journal</title>
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230b2a35'/%3E%3Ccircle cx='32' cy='32' r='18' fill='none' stroke='%23f4eee2' stroke-width='3'/%3E%3Cpath d='m39 22-4 13-13 7 7-13z' fill='%23ff6b4a'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="assets/css/styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js" defer></script>
+    <script src="assets/js/travel-data.js" defer></script>
+    <script src="assets/js/map.js" defer></script>
+  </head>
+
+  <body class="map-page">
+    <a class="skip-link" href="#world-map">Skip to the world map</a>
+
+    <header class="site-header">
+      <a class="brand" href="index.html" aria-label="Wander Atlas home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32"><use href="#icon-compass"></use></svg>
+        </span>
+        <span>
+          <strong data-site-title>Wander Atlas</strong>
+          <small data-owner>Your name</small>
+        </span>
+      </a>
+
+      <div class="header-actions">
+        <p class="header-intro" data-site-intro>
+          A personal atlas of places, photographs, and the thoughts that stayed with me.
+        </p>
+        <div class="language-switch" role="group" aria-label="Language">
+          <button class="language-button is-active" type="button" data-language="en" aria-pressed="true">EN</button>
+          <button class="language-button" type="button" data-language="zh" aria-pressed="false">中文</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="atlas-layout">
+      <section class="map-card" aria-labelledby="map-heading">
+        <div class="map-toolbar">
+          <div>
+            <p class="eyebrow" data-i18n="mapEyebrow">Travel journal</p>
+            <h1 id="map-heading" data-i18n="mapHeading">Choose a country</h1>
+            <p class="map-instruction" data-i18n="mapInstruction">
+              Select any country to see its journal preview.
+            </p>
+          </div>
+
+          <div class="map-actions" aria-label="Map controls">
+            <button class="map-control" id="zoom-in" type="button" aria-label="Zoom in" title="Zoom in">
+              <svg aria-hidden="true"><use href="#icon-plus"></use></svg>
+            </button>
+            <button class="map-control" id="zoom-out" type="button" aria-label="Zoom out" title="Zoom out">
+              <svg aria-hidden="true"><use href="#icon-minus"></use></svg>
+            </button>
+            <button class="map-control" id="zoom-reset" type="button" aria-label="Reset map" title="Reset map">
+              <svg aria-hidden="true"><use href="#icon-reset"></use></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="map-frame" id="world-map">
+          <div class="map-status" id="map-status" role="status" aria-live="polite">
+            <span class="loading-orbit" aria-hidden="true"></span>
+            <span data-i18n="loading">Drawing the map…</span>
+          </div>
+          <svg
+            id="map-svg"
+            class="world-map"
+            viewBox="0 0 1100 610"
+            role="group"
+            aria-label="Interactive world map"
+          ></svg>
+          <div class="map-tooltip" id="map-tooltip" role="tooltip" hidden></div>
+        </div>
+
+        <div class="map-legend" aria-label="Map legend">
+          <span><i class="legend-swatch legend-visited"></i><span data-i18n="hasStory">Journal available</span></span>
+          <span><i class="legend-swatch legend-empty"></i><span data-i18n="noStory">No entry yet</span></span>
+          <span class="map-hint" data-i18n="mapHint">Drag to move · scroll to zoom</span>
+        </div>
+      </section>
+
+      <aside class="country-panel" id="country-panel" aria-live="polite" aria-label="Country journal preview">
+        <button class="panel-close" id="panel-close" type="button" aria-label="Close preview">
+          <svg aria-hidden="true"><use href="#icon-close"></use></svg>
+        </button>
+        <div id="panel-content"></div>
+      </aside>
+    </main>
+
+    <footer class="site-footer">
+      <p data-i18n="footer">Built as a living archive—one place, photograph, and reflection at a time.</p>
+      <span aria-hidden="true">↗</span>
+    </footer>
+
+    <noscript>
+      <p class="noscript-message">This interactive map needs JavaScript to display country journals.</p>
+    </noscript>
+
+    <svg class="icon-sprite" aria-hidden="true">
+      <symbol id="icon-compass" viewBox="0 0 32 32">
+        <circle cx="16" cy="16" r="12.5" fill="none" stroke="currentColor" stroke-width="1.7" />
+        <path d="m21.5 10.5-3.3 8-7.7 3 3.2-7.8z" fill="currentColor" />
+      </symbol>
+      <symbol id="icon-plus" viewBox="0 0 24 24">
+        <path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </symbol>
+      <symbol id="icon-minus" viewBox="0 0 24 24">
+        <path d="M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </symbol>
+      <symbol id="icon-reset" viewBox="0 0 24 24">
+        <path d="M5.2 8.5A7.5 7.5 0 1 1 5 15M5.2 8.5V4.2M5.2 8.5h4.3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+      </symbol>
+      <symbol id="icon-close" viewBox="0 0 24 24">
+        <path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+      </symbol>
+      <symbol id="icon-calendar" viewBox="0 0 24 24">
+        <path d="M6 3v3M18 3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v14H4V6a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+      </symbol>
+      <symbol id="icon-pin" viewBox="0 0 24 24">
+        <path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" />
+        <circle cx="12" cy="10" r="2.5" fill="none" stroke="currentColor" stroke-width="1.7" />
+      </symbol>
+      <symbol id="icon-spark" viewBox="0 0 24 24">
+        <path d="m12 3 1.5 5.2L19 10l-5.5 1.8L12 17l-1.5-5.2L5 10l5.5-1.8zM19 17l.6 2.1L22 20l-2.4.9L19 23l-.6-2.1L16 20l2.4-.9z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+      </symbol>
+      <symbol id="icon-arrow" viewBox="0 0 24 24">
+        <path d="M5 12h14M14 7l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+      </symbol>
+    </svg>
+  </body>
+</html>
