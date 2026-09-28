@@ -4,6 +4,9 @@
   const WORLD_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json";
   const entries = window.TRAVEL_ENTRIES || {};
   const site = window.TRAVEL_SITE || {};
+  const countryLabels = {
+    "156": { en: "China", zh: "中国" }
+  };
 
   const copy = {
     en: {
@@ -89,7 +92,7 @@
   function countryName(feature) {
     const id = normalizeId(feature.id);
     const entry = entries[id];
-    return entry ? getText(entry.name) : (feature.properties?.name || id);
+    return entry ? getText(entry.name) : getText(countryLabels[id]) || feature.properties?.name || id;
   }
 
   function applyLanguage() {
@@ -147,7 +150,7 @@
   function renderCountry(feature) {
     const id = normalizeId(feature.id);
     const entry = entries[id];
-    const fallbackName = feature.properties?.name || id;
+    const fallbackName = countryName(feature);
     panel.classList.add("is-open");
 
     if (!entry) {
@@ -165,14 +168,14 @@
       return;
     }
 
-    const thumbnails = entry.highlights.slice(0, 3).map((photo) => `
+    const thumbnails = (entry.highlights || []).slice(0, 3).map((photo) => `
       <img src="${escapeHtml(photo.src)}" alt="${escapeHtml(getText(photo.alt))}" loading="lazy" />
     `).join("");
 
     panelContent.innerHTML = `
       <article class="country-preview">
         <div class="preview-cover">
-          <img src="${escapeHtml(entry.cover)}" alt="${escapeHtml(getText(entry.highlights[0]?.alt) || getText(entry.name))}" />
+          <img src="${escapeHtml(entry.cover)}" alt="${escapeHtml(getText(entry.highlights?.[0]?.alt) || getText(entry.name))}" />
           <div class="preview-country-mark">
             <span aria-hidden="true">${escapeHtml(entry.flag || "◎")}</span>
             <span>${escapeHtml(getText(entry.kicker))}</span>
@@ -226,7 +229,28 @@
       if (!response.ok) throw new Error(`Map request failed: ${response.status}`);
       const topology = await response.json();
       const allCountries = topojson.feature(topology, topology.objects.countries).features;
-      const countries = allCountries.filter((feature) => normalizeId(feature.id) !== "010");
+      const topologyCountries = topology.objects.countries.geometries || [];
+      const chinaParts = topologyCountries.filter((geometry) => {
+        const id = normalizeId(geometry.id);
+        return id === "156" || id === "158";
+      });
+      const mergedChinaGeometry = chinaParts.length
+        ? topojson.merge(topology, chinaParts)
+        : null;
+      const countries = allCountries
+        .filter((feature) => {
+          const id = normalizeId(feature.id);
+          return id !== "010" && id !== "158";
+        })
+        .map((feature) => {
+          if (normalizeId(feature.id) !== "156" || !mergedChinaGeometry) return feature;
+          return {
+            type: "Feature",
+            id: "156",
+            properties: { ...feature.properties, name: "China" },
+            geometry: mergedChinaGeometry
+          };
+        });
       const collection = { type: "FeatureCollection", features: countries };
 
       mapSvg = d3.select("#map-svg");

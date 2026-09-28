@@ -13,13 +13,12 @@
     en: {
       backToMap: "Back to the map",
       sampleBadge: "Sample content — replace with your own",
-      dateLabel: "When",
-      placeLabel: "Places",
-      moodLabel: "Mood",
-      openingLabel: "Field notes",
-      galleryTitle: "Highlights",
-      galleryText: "Select a photograph to view it at full size.",
-      closingLabel: "Closing note",
+      timelineEyebrow: "Country journal",
+      timelineTitle: "Visits, newest first",
+      timelineText: "Each point is a separate visit. The line moves upward from the earliest journey to the latest.",
+      visitLabel: "Visit",
+      photosLabel: "photographs",
+      emptyPhotos: "Add photographs to this visit.",
       mapLink: "Return to the world map",
       footer: "A personal travel archive",
       missingTitle: "Journal not found",
@@ -29,13 +28,12 @@
     zh: {
       backToMap: "返回世界地图",
       sampleBadge: "示例内容——请替换为你的照片与文字",
-      dateLabel: "时间",
-      placeLabel: "地点",
-      moodLabel: "感受",
-      openingLabel: "旅行手记",
-      galleryTitle: "精选照片",
-      galleryText: "点击照片可以全屏查看。",
-      closingLabel: "结尾",
+      timelineEyebrow: "国家游记",
+      timelineTitle: "多次到访 · 最近一次在上",
+      timelineText: "每个节点代表一次独立旅行；时间线从最早的旅程向上延伸至最近一次。",
+      visitLabel: "旅程",
+      photosLabel: "张照片",
+      emptyPhotos: "在这次旅行中加入照片。",
       mapLink: "返回世界地图",
       footer: "一份个人旅行档案",
       missingTitle: "没有找到这篇游记",
@@ -45,13 +43,15 @@
   };
 
   const requested = new URLSearchParams(window.location.search).get("country") || "";
-  const entryId = entries[requested]
-    ? requested
-    : Object.keys(entries).find((id) => entries[id].slug === requested);
+  const normalizedRequest = requested === "158" ? "156" : requested;
+  const entryId = entries[normalizedRequest]
+    ? normalizedRequest
+    : Object.keys(entries).find((id) => entries[id].slug === normalizedRequest);
   const entry = entryId ? entries[entryId] : null;
 
   let language = localStorage.getItem("wanderAtlasLanguage") || "en";
   let activePhoto = 0;
+  let galleryPhotos = [];
   if (!copy[language]) language = "en";
 
   const getText = (value) => {
@@ -100,6 +100,39 @@
     `;
   }
 
+  function renderPhotoGrid(visit) {
+    const photos = Array.isArray(visit.photos) ? visit.photos : [];
+    if (!photos.length) {
+      return `<p class="visit-empty-photos">${escapeHtml(copy[language].emptyPhotos)}</p>`;
+    }
+
+    const startIndex = galleryPhotos.length;
+    galleryPhotos.push(...photos);
+    const columnCount = Math.min(photos.length, 5);
+
+    const buttons = photos.map((photo, index) => {
+      const caption = getText(photo.caption);
+      const alt = getText(photo.alt) || getText(visit.place) || getText(entry.name);
+      return `
+        <button
+          class="visit-photo"
+          type="button"
+          data-photo-index="${startIndex + index}"
+          aria-label="${escapeHtml(`${copy[language].imageLabel}: ${alt}`)}"
+        >
+          <img src="${escapeHtml(photo.src)}" alt="${escapeHtml(alt)}" loading="lazy" />
+          ${caption ? `<span>${escapeHtml(caption)}</span>` : ""}
+        </button>
+      `;
+    }).join("");
+
+    return `
+      <div class="visit-photo-grid columns-${columnCount}" aria-label="${escapeHtml(`${photos.length} ${copy[language].photosLabel}`)}">
+        ${buttons}
+      </div>
+    `;
+  }
+
   function renderJourney() {
     if (!entry) {
       renderError();
@@ -107,35 +140,35 @@
     }
 
     document.title = `${getText(entry.name)} — ${getText(site.title) || "Wander Atlas"}`;
+    galleryPhotos = [];
 
-    const storySections = entry.sections.map((section, index) => `
-      <article class="story-section">
-        <span class="story-number">0${index + 1}</span>
-        <h2>${escapeHtml(getText(section.title))}</h2>
-        <p>${escapeHtml(getText(section.body))}</p>
-      </article>
-    `).join("");
-
-    const gallery = entry.highlights.map((photo, index) => {
-      const caption = getText(photo.caption);
-      const alt = getText(photo.alt);
+    const visits = Array.isArray(entry.visits) ? entry.visits : [];
+    const visitItems = visits.map((visit, index) => {
+      const chronologicalNumber = String(visits.length - index).padStart(2, "0");
       return `
-        <button
-          class="photo-button"
-          type="button"
-          data-photo-index="${index}"
-          data-caption="${escapeHtml(caption)}"
-          aria-label="${escapeHtml(`${copy[language].imageLabel}: ${alt}`)}"
-        >
-          <img src="${escapeHtml(photo.src)}" alt="${escapeHtml(alt)}" loading="lazy" />
-        </button>
+        <article class="timeline-entry">
+          <div class="visit-meta">
+            <span class="visit-number">${escapeHtml(copy[language].visitLabel)} ${chronologicalNumber}</span>
+            <time>${escapeHtml(getText(visit.date))}</time>
+            <p>${escapeHtml(getText(visit.place))}</p>
+          </div>
+
+          <div class="visit-axis" aria-hidden="true"><span></span></div>
+
+          <div class="visit-content">
+            ${renderPhotoGrid(visit)}
+            <p class="visit-text">${escapeHtml(getText(visit.text))}</p>
+          </div>
+        </article>
       `;
     }).join("");
+
+    const coverAlt = getText(entry.highlights?.[0]?.alt) || getText(entry.name);
 
     root.innerHTML = `
       <article>
         <section class="journey-hero">
-          <img class="journey-hero-image" src="${escapeHtml(entry.cover)}" alt="${escapeHtml(getText(entry.highlights[0]?.alt) || getText(entry.name))}" />
+          <img class="journey-hero-image" src="${escapeHtml(entry.cover)}" alt="${escapeHtml(coverAlt)}" />
           <div class="journey-hero-content">
             <p class="journey-kicker">
               <span class="flag" aria-hidden="true">${escapeHtml(entry.flag || "◎")}</span>
@@ -147,43 +180,15 @@
           </div>
         </section>
 
-        <section class="journey-meta-wrap" aria-label="Journey details">
-          <div class="journey-meta">
-            <div class="journey-meta-item">
-              ${icon("calendar")}
-              <div><span>${escapeHtml(copy[language].dateLabel)}</span><strong>${escapeHtml(getText(entry.dates))}</strong></div>
-            </div>
-            <div class="journey-meta-item">
-              ${icon("pin")}
-              <div><span>${escapeHtml(copy[language].placeLabel)}</span><strong>${escapeHtml(getText(entry.places))}</strong></div>
-            </div>
-            <div class="journey-meta-item">
-              ${icon("spark")}
-              <div><span>${escapeHtml(copy[language].moodLabel)}</span><strong>${escapeHtml(getText(entry.mood))}</strong></div>
-            </div>
+        <section class="timeline-section" aria-labelledby="timeline-title">
+          <header class="timeline-heading">
+            <p class="eyebrow">${escapeHtml(copy[language].timelineEyebrow)}</p>
+            <h2 id="timeline-title">${escapeHtml(copy[language].timelineTitle)}</h2>
+            <p>${escapeHtml(copy[language].timelineText)}</p>
+          </header>
+          <div class="journal-timeline">
+            ${visitItems}
           </div>
-        </section>
-
-        <section class="journal-content">
-          <div class="journal-opening">
-            <p class="journal-opening-label">${escapeHtml(copy[language].openingLabel)}</p>
-            <p class="journal-lead">${escapeHtml(getText(entry.lead))}</p>
-          </div>
-          <div class="story-sections">${storySections}</div>
-        </section>
-
-        <section class="gallery-section" aria-labelledby="gallery-title">
-          <div class="gallery-inner">
-            <div class="gallery-heading">
-              <h2 id="gallery-title">${escapeHtml(copy[language].galleryTitle)}</h2>
-              <p>${escapeHtml(copy[language].galleryText)}</p>
-            </div>
-            <div class="photo-grid">${gallery}</div>
-          </div>
-        </section>
-
-        <section class="closing-section" aria-label="${escapeHtml(copy[language].closingLabel)}">
-          <blockquote>${escapeHtml(getText(entry.closing))}</blockquote>
         </section>
 
         <footer class="journey-footer">
@@ -199,22 +204,23 @@
   }
 
   function updateLightbox() {
-    if (!entry) return;
-    const photo = entry.highlights[activePhoto];
+    const photo = galleryPhotos[activePhoto];
+    if (!photo) return;
     lightboxImage.src = photo.src;
     lightboxImage.alt = getText(photo.alt);
     lightboxCaption.textContent = getText(photo.caption);
   }
 
   function openLightbox(index) {
+    if (!galleryPhotos[index]) return;
     activePhoto = index;
     updateLightbox();
     if (typeof lightbox.showModal === "function") lightbox.showModal();
   }
 
   function moveLightbox(direction) {
-    if (!entry) return;
-    activePhoto = (activePhoto + direction + entry.highlights.length) % entry.highlights.length;
+    if (!galleryPhotos.length) return;
+    activePhoto = (activePhoto + direction + galleryPhotos.length) % galleryPhotos.length;
     updateLightbox();
   }
 
